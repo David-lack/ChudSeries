@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Series Progression Hub</title>
     
-    <link rel="icon" type=".jpg" href="https://i.pinimg.com/736x/b6/c7/21/b6c72133b1b9e7e71ddd08ec8cf1ba9e.jpg">
+    <link rel="icon" type="image/jpeg" href="https://i.pinimg.com/736x/89/bc/70/89bc70da9ac43241759c2710602103c6.jpg">
 
     <style>
         :root {
@@ -145,16 +145,18 @@
         onValue(profileRef, (snapshot) => {
             const profileData = snapshot.val() || {};
             
-            const devStatus = (profileData.dev_status || 'active').toLowerCase();
+            const rawStatus = (profileData.dev_status || 'active').toLowerCase();
             const devPresence = profileData.dev_presence || 'Coding';
             const devPfpUrl = profileData.dev_pfp || 'https://www.w3schools.com/howto/img_avatar.png';
             
-            // Cleaned status label text to say exactly "Active"
-            const statusLabel = devStatus === 'paused' ? 'Development Paused' : 'Active';
+            // SMART STATUS CHECKER: Detects any status values matching paused, break, off, or pause
+            const isPaused = rawStatus.includes('pause') || rawStatus.includes('break') || rawStatus.includes('off');
+            
+            const statusLabel = isPaused ? 'Development Paused' : 'Active';
             const pulseTarget = document.getElementById('globalDevPulse');
             
             if (pulseTarget) {
-                pulseTarget.className = `global-dev-pulse ${devStatus === 'paused' ? 'paused' : 'active'}`;
+                pulseTarget.className = `global-dev-pulse ${isPaused ? 'paused' : 'active'}`;
                 pulseTarget.innerText = statusLabel;
             }
             
@@ -193,7 +195,7 @@
                 let scheduleHTML = '';
                 if (progressValue < 100 && project.estimated_release_date) {
                     
-                    // FALLBACK: Evaluates schedule_status or flat status keys cleanly
+                    // FALLBACK METHOD: Syncs with schedule_status OR the main status property safely
                     const schedStatus = (project.schedule_status || project.status || 'on time').toLowerCase();
                     
                     const isDelayed = schedStatus.includes('delay');
@@ -275,4 +277,4 @@
     </div>
 
 </body>
-</html>
+</html> 
