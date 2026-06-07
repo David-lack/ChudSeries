@@ -121,7 +121,7 @@
   appId: "1:665957195586:web:293104b4e0f1393c5572db"
         };
 
-        const app = initializeApp(firebaseConfig);
+const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
 
         // 1. Listen to the dedicated dev_profile folder path
@@ -175,13 +175,18 @@
                     : ``;
 
                 let scheduleHTML = '';
-                // Checks for estimated_release_date flawlessly matching your schema configuration
+                // Checks for estimated_release_date flawlessly matching your database schema layout configurations
                 if (progressValue < 100 && project.estimated_release_date) {
-                    const schedStatus = (project.schedule_status || 'on time').toLowerCase();
-                    const stateClass = schedStatus === 'delayed' ? 'delayed' : 'ontime';
-                    const stateLabel = schedStatus === 'delayed' ? 'DELAYED' : 'ON TIME';
+                    
+                    // FIXED FALLBACK: Looks up schedule_status, drops back to status field if missing, defaults to 'on time'
+                    const schedStatus = (project.schedule_status || project.status || 'on time').toLowerCase();
+                    
+                    // Checks if string value contains 'delay' or matches perfectly
+                    const isDelayed = schedStatus.includes('delay');
+                    const stateClass = isDelayed ? 'delayed' : 'ontime';
+                    const stateLabel = isDelayed ? 'DELAYED' : 'ON TIME';
 
-                    // Renders the full label with your correct live variables
+                    // Renders the full schedule layout card block cleanly
                     scheduleHTML = `
                         <div class="schedule-zone">
                             <span>ESTIMATED RELEASE DATE: ${project.estimated_release_date}</span>
@@ -237,7 +242,10 @@
 
     <div class="tracker-wrapper">
         <header>
-            <h1>Series Progression Tracker</h1>
+            <div class="header-title-container">
+                <img class="header-icon" src="https://raw.githubusercontent.com/google/fonts/main/ofl/geminu/Gemini_Logo.png" alt="Spark Logo">
+                <h1>Series Progression Tracker</h1>
+            </div>
             <p class="subtitle">Ecosystem deployment node map</p>
             
             <div class="global-dev-card">
