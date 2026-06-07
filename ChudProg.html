@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Series Progression Hub</title>
-
-<link rel="icon" type=".jpg" href="https://i.pinimg.com/736x/b6/c7/21/b6c72133b1b9e7e71ddd08ec8cf1ba9e.jpg">
+    
+    <link rel="icon" type="image/jpeg" href="https://i.pinimg.com/736x/89/bc/70/89bc70da9ac43241759c2710602103c6.jpg">
 
     <style>
         :root {
@@ -43,7 +43,23 @@
             border-bottom: 1px solid var(--border-color); 
             padding-bottom: 20px; 
         }
-        h1 { margin: 0 0 6px 0; font-size: 2rem; letter-spacing: -0.025em; }
+        
+        .header-title-container {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin-bottom: 6px;
+        }
+        
+        .header-icon {
+            width: 42px;
+            height: 42px;
+            object-fit: cover;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+
+        h1 { margin: 0; font-size: 2rem; letter-spacing: -0.025em; }
         .subtitle { color: var(--text-muted); margin: 0; font-size: 0.95rem; }
 
         /* Global Dev Status Banner Layout */
@@ -121,7 +137,7 @@
   appId: "1:665957195586:web:293104b4e0f1393c5572db"
         };
 
-const app = initializeApp(firebaseConfig);
+        const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
 
         // 1. Listen to the dedicated dev_profile folder path
@@ -175,18 +191,15 @@ const app = initializeApp(firebaseConfig);
                     : ``;
 
                 let scheduleHTML = '';
-                // Checks for estimated_release_date flawlessly matching your database schema layout configurations
                 if (progressValue < 100 && project.estimated_release_date) {
                     
-                    // FIXED FALLBACK: Looks up schedule_status, drops back to status field if missing, defaults to 'on time'
+                    // FALLBACK: Evaluates schedule_status or flat status keys cleanly
                     const schedStatus = (project.schedule_status || project.status || 'on time').toLowerCase();
                     
-                    // Checks if string value contains 'delay' or matches perfectly
                     const isDelayed = schedStatus.includes('delay');
                     const stateClass = isDelayed ? 'delayed' : 'ontime';
                     const stateLabel = isDelayed ? 'DELAYED' : 'ON TIME';
 
-                    // Renders the full schedule layout card block cleanly
                     scheduleHTML = `
                         <div class="schedule-zone">
                             <span>ESTIMATED RELEASE DATE: ${project.estimated_release_date}</span>
@@ -243,7 +256,7 @@ const app = initializeApp(firebaseConfig);
     <div class="tracker-wrapper">
         <header>
             <div class="header-title-container">
-                <img class="header-icon" src="https://raw.githubusercontent.com/google/fonts/main/ofl/geminu/Gemini_Logo.png" alt="Spark Logo">
+                <img class="header-icon" src="https://i.pinimg.com/736x/b6/c7/21/b6c72133b1b9e7e71ddd08ec8cf1ba9e.jpg" alt="Header Icon">
                 <h1>Series Progression Tracker</h1>
             </div>
             <p class="subtitle">Ecosystem deployment node map</p>
