@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Series Progression Hub</title>
+
+<link rel="icon" type=".jpg" href="https://i.pinimg.com/736x/b6/c7/21/b6c72133b1b9e7e71ddd08ec8cf1ba9e.jpg">
+
+    <style>
+        :root {
+            /* Premium Grey Gradient Color Map */
+            --bg-main-start: #1e2022;   /* Elegant Dark Grey */
+            --bg-main-end: #111215;     /* Deep Onyx Slate */
+            --bg-card-start: #23272a;   /* Subtle lighter grey for card depth */
+            --bg-card-end: #1a1c1e;     /* Grounding dark slate grey */
+            
+            --border-color: #2f343d;    /* Clean metallic border tone */
+            --text-main: #f5f5f7;       /* Bright crisp ice-white */
+            --text-muted: #9ea4b0;      /* Soft ash grey for text details */
+            
+            /* Accents & Utility Colors */
+            --accent: #e2e8f0;          /* Silver/light grey signature highlight */
+            --success: #10b981;         /* Kept emerald green for Deployed / On Time states */
+            --warning: #f97316;         /* Orange for Delayed alerts */
+            --purple: #94a3b8;          /* Steel gray shift for the presence dot */
+        }
+
+        body {
+            margin: 0; padding: 0;
+            font-family: system-ui, sans-serif;
+            /* Dynamic Light-to-Dark Metallic Background Gradient */
+            background: linear-gradient(135deg, var(--bg-main-start) 0%, var(--bg-main-end) 100%);
+            background-attachment: fixed;
+            color: var(--text-main);
+            display: flex; justify-content: center; min-height: 100vh;
+        }
+
+        .tracker-wrapper { width: 100%; max-width: 900px; padding: 40px 20px; box-sizing: border-box; }
+        
+        header { 
+            margin-bottom: 30px; 
+            border-bottom: 1px solid var(--border-color); 
+            padding-bottom: 20px; 
+        }
+        h1 { margin: 0 0 6px 0; font-size: 2rem; letter-spacing: -0.025em; }
+        .subtitle { color: var(--text-muted); margin: 0; font-size: 0.95rem; }
+
+        /* Global Dev Status Banner Layout */
+        .global-dev-card {
+            display: flex; align-items: center; gap: 12px;
+            background: linear-gradient(135deg, rgba(35, 39, 42, 0.4) 0%, rgba(26, 28, 30, 0.4) 100%);
+            border: 1px solid var(--border-color);
+            border-radius: 8px; padding: 10px 16px;
+            width: fit-content; min-width: 260px;
+            margin-top: 14px;
+            backdrop-filter: blur(8px);
+        }
+        .global-dev-pfp { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; border: 1px solid var(--border-color); background-color: var(--bg-main-end); flex-shrink: 0; }
+        .global-dev-info { font-size: 0.78rem; font-family: monospace; display: flex; flex-direction: column; gap: 2px; }
+        .global-dev-pulse { font-weight: 600; font-size: 0.72rem; text-transform: uppercase; }
+        .global-dev-pulse.active { color: var(--text-main); text-shadow: 0 0 8px rgba(255,255,255,0.2); }
+        .global-dev-pulse.paused { color: var(--warning); }
+        
+        .global-presence-text { font-weight: 700; color: var(--text-muted); text-transform: uppercase; font-size: 0.75rem; display: inline-flex; align-items: center; gap: 4px; }
+        .global-presence-text::before { content: '●'; font-size: 0.7rem; color: var(--text-muted); animation: blink 2s infinite; }
+
+        /* Projects Layout Grid */
+        .series-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
+        
+        /* Dynamic Light-to-Dark Grey Gradient on Cards */
+        .card { 
+            background: linear-gradient(145deg, var(--bg-card-start) 0%, var(--bg-card-end) 100%); 
+            border: 1px solid var(--border-color); 
+            border-radius: 12px; padding: 20px; 
+            display: flex; flex-direction: column; justify-content: space-between; 
+            position: relative; min-height: 160px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+        }
+        
+        .card-header-block { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 14px; }
+        .title { margin: 0; font-size: 1.2rem; color: var(--text-main); font-weight: 700; }
+        .project-thumb { width: 48px; height: 48px; border-radius: 8px; object-fit: cover; border: 1px solid var(--border-color); background-color: var(--bg-main-end); flex-shrink: 0; }
+
+        .description { color: var(--text-muted); font-size: 0.88rem; margin: 0 0 20px 0; line-height: 1.4; }
+        
+        /* Updated Schedule Meta Layout */
+        .schedule-zone { font-size: 0.75rem; font-family: monospace; color: var(--text-muted); margin-bottom: 14px; padding-bottom: 12px; border-bottom: 1px dashed var(--border-color); display: flex; justify-content: space-between; align-items: center; }
+        .schedule-tag { font-weight: 700; padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; text-transform: uppercase; }
+        .schedule-tag.ontime { background: rgba(255, 255, 255, 0.08); color: var(--text-main); border: 1px solid rgba(255, 255, 255, 0.15); }
+        .schedule-tag.delayed { background: rgba(249, 115, 22, 0.15); color: var(--warning); border: 1px solid rgba(249, 115, 22, 0.3); }
+
+        .prog-label { display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-muted); font-family: monospace; margin-bottom: 8px; }
+        .status-tag { color: var(--text-main); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+        .status-tag.complete { color: var(--success); }
+
+        .progress-track { width: 100%; height: 6px; background-color: rgba(0, 0, 0, 0.2); border: 1px solid var(--border-color); border-radius: 4px; overflow: hidden; }
+        .progress-fill { height: 100%; background-color: var(--text-main); width: 0%; transition: width 0.4s ease; box-shadow: 0 0 8px rgba(255,255,255,0.4); }
+
+        .live-link { display: inline-flex; align-items: center; color: var(--success); text-decoration: none; font-weight: 600; font-size: 0.9rem; font-family: monospace; transition: opacity 0.2s; }
+        .live-link:hover { opacity: 0.8; text-decoration: underline; }
+
+        @keyframes blink { 0%, 100% { opacity: 0.3; } 50% { opacity: 1; } }
+        .empty-state { text-align: center; color: var(--text-muted); padding: 40px; grid-column: 1 / -1; font-family: monospace; }
+    </style>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+        // ==========================================
+        //  FIREBASE CONFIGURATION
+        // ==========================================
+        const firebaseConfig = {
+  apiKey: "AIzaSyBkiX7bayQCXphaU8f1Px8a440A95aJXqg",
+  authDomain: "gen-lang-client-0801332051.firebaseapp.com",
+  databaseURL: "https://gen-lang-client-0801332051-default-rtdb.firebaseio.com",
+  projectId: "gen-lang-client-0801332051",
+  storageBucket: "gen-lang-client-0801332051.firebasestorage.app",
+  messagingSenderId: "665957195586",
+  appId: "1:665957195586:web:293104b4e0f1393c5572db"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        // 1. Listen to the dedicated dev_profile folder path
+        const profileRef = ref(db, 'dev_profile');
+        onValue(profileRef, (snapshot) => {
+            const profileData = snapshot.val() || {};
+            
+            const devStatus = (profileData.dev_status || 'active').toLowerCase();
+            const devPresence = profileData.dev_presence || 'Coding';
+            const devPfpUrl = profileData.dev_pfp || 'https://www.w3schools.com/howto/img_avatar.png';
+            
+            // Cleaned status label text to say exactly "Active"
+            const statusLabel = devStatus === 'paused' ? 'Development Paused' : 'Active';
+            const pulseTarget = document.getElementById('globalDevPulse');
+            
+            if (pulseTarget) {
+                pulseTarget.className = `global-dev-pulse ${devStatus === 'paused' ? 'paused' : 'active'}`;
+                pulseTarget.innerText = statusLabel;
+            }
+            
+            if (document.getElementById('globalDevPresence')) {
+                document.getElementById('globalDevPresence').innerText = devPresence;
+            }
+            if (document.getElementById('globalDevPfp')) {
+                document.getElementById('globalDevPfp').src = devPfpUrl;
+            }
+        });
+
+        // 2. Stream Dynamic Project Card Grid Metrics
+        const projectsRef = ref(db, 'chud_series_projects');
+        onValue(projectsRef, (snapshot) => {
+            const data = snapshot.val();
+            const grid = document.getElementById('seriesGrid');
+            grid.innerHTML = '';
+            
+            if (!data) {
+                grid.innerHTML = '<div class="empty-state">// ECOSYSTEM ONLINE: WAITING FOR LIVE NODES</div>';
+                return;
+            }
+
+            Object.keys(data).forEach(id => {
+                if (id === 'placeholder') return; 
+                const project = data[id];
+                const progressValue = parseInt(project.progress || 0);
+                
+                let currentStatus = project.status ? project.status : "Development";
+                const titleElement = '<h3 class="title">' + project.name + '</h3>';
+
+                const imageElement = (project.img && project.img.trim() !== "")
+                    ? `<img class="project-thumb" src="${project.img}" alt="${project.name}" onerror="this.style.display='none'">`
+                    : ``;
+
+                let scheduleHTML = '';
+                // Checks for estimated_release_date flawlessly matching your schema configuration
+                if (progressValue < 100 && project.estimated_release_date) {
+                    const schedStatus = (project.schedule_status || 'on time').toLowerCase();
+                    const stateClass = schedStatus === 'delayed' ? 'delayed' : 'ontime';
+                    const stateLabel = schedStatus === 'delayed' ? 'DELAYED' : 'ON TIME';
+
+                    // Renders the full label with your correct live variables
+                    scheduleHTML = `
+                        <div class="schedule-zone">
+                            <span>ESTIMATED RELEASE DATE: ${project.estimated_release_date}</span>
+                            <span class="schedule-tag ${stateClass}">${stateLabel}</span>
+                        </div>
+                    `;
+                }
+
+                let bottomActionHTML = '';
+                if (progressValue >= 100) {
+                    currentStatus = "Deployed";
+                    bottomActionHTML = `
+                        <div class="prog-label">
+                            <span class="status-tag complete">${currentStatus}</span>
+                        </div>
+                        <a class="live-link" href="${project.url || '#'}" target="_blank" rel="noopener noreferrer">
+                            ⚡ Website Here &rarr;
+                        </a>
+                    `;
+                } else {
+                    bottomActionHTML = `
+                        <div class="prog-label">
+                            <span class="status-tag">${currentStatus}</span>
+                            <span>${progressValue}%</span>
+                        </div>
+                        <div class="progress-track">
+                            <div class="progress-fill" style="width: ${progressValue}%"></div>
+                        </div>
+                    `;
+                }
+
+                const cardHTML = `
+                    <div class="card">
+                        <div>
+                            <div class="card-header-block">
+                                ${titleElement}
+                                ${imageElement}
+                            </div>
+                            <p class="description">${project.desc || 'No description loaded.'}</p>
+                            ${scheduleHTML}
+                        </div>
+                        <div>
+                            ${bottomActionHTML}
+                        </div>
+                    </div>
+                `;
+                grid.insertAdjacentHTML('beforeend', cardHTML);
+            });
+        });
+    </script>
+</head>
+<body>
+
+    <div class="tracker-wrapper">
+        <header>
+            <h1>Series Progression Tracker</h1>
+            <p class="subtitle">Ecosystem deployment node map</p>
+            
+            <div class="global-dev-card">
+                <img id="globalDevPfp" class="global-dev-pfp" src="https://www.w3schools.com/howto/img_avatar.png" alt="Dev Avatar" onerror="this.src='https://www.w3schools.com/howto/img_avatar.png'">
+                <div class="global-dev-info">
+                    <span id="globalDevPulse" class="global-dev-pulse active">Active</span>
+                    <span id="globalDevPresence" class="global-presence-text">Coding</span>
+                </div>
+            </div>
+        </header>
+
+        <div class="series-grid" id="seriesGrid">
+            </div>
+    </div>
+
+</body>
+</html>
