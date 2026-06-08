@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chud Class Hub</title>
+    
+    <link rel="icon" type="image/jpeg" href="https://i.pinimg.com/736x/89/bc/70/89bc70da9ac43241759c2710602103c6.jpg">
+
+    <style>
+        :root {
+            --bg-main: #111215;         /* Deep Onyx Slate */
+            --bg-sidebar: #17191c;      /* Structured Matte Sidebar */
+            --bg-card: #1c1e22;         /* Raised Dashboard Cards */
+            --border-color: #26292e;    /* Clean Dark Panel Borders */
+            --text-main: #f5f5f7;       /* Ice White */
+            --text-muted: #8e94a0;      /* Ash Muted Grey */
+            --success: #10b981;         /* Emerald Green */
+            --warning: #f97316;         /* Accent Orange */
+            --accent-blue: #3b82f6;     /* Action Blue */
+            --danger: #ef4444;          /* Alert Crimson */
+        }
+
+        body {
+            margin: 0; padding: 0;
+            font-family: system-ui, sans-serif;
+            background-color: var(--bg-main);
+            color: var(--text-main);
+            display: flex; min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* --- NOTIFICATION ALERT TOAST BANNER --- */
+        .notification-tray {
+            position: fixed; top: 20px; right: 20px;
+            display: flex; flex-direction: column; gap: 10px;
+            z-index: 10000; max-width: 360px; width: 100%;
+        }
+        .toast-alert {
+            background-color: #1a1515; border-left: 4px solid var(--warning);
+            border-top: 1px solid var(--border-color); border-right: 1px solid var(--border-color); border-bottom: 1px solid var(--border-color);
+            padding: 16px; border-radius: 8px; color: var(--text-main);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+            display: flex; flex-direction: column; gap: 6px;
+            animation: slideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        .toast-alert.urgent { border-left-color: var(--danger); background-color: #201314; }
+        .toast-header { font-size: 0.75rem; font-family: monospace; text-transform: uppercase; font-weight: 700; display: flex; justify-content: space-between; }
+        .toast-title { margin: 0; font-size: 0.9rem; font-weight: 600; }
+        .toast-desc { margin: 0; font-size: 0.8rem; color: var(--text-muted); line-height: 1.4; }
+
+        /* --- SIDEBAR NAVIGATION --- */
+        .sidebar {
+            width: 240px; background-color: var(--bg-sidebar);
+            border-right: 1px solid var(--border-color);
+            display: flex; flex-direction: column; padding: 24px 16px;
+            box-sizing: border-box; position: fixed; height: 100vh;
+        }
+        .sidebar-brand {
+            display: flex; align-items: center; gap: 10px; margin-bottom: 32px;
+            font-weight: 700; font-size: 1.1rem; letter-spacing: -0.02em;
+        }
+        .brand-icon { width: 32px; height: 32px; border-radius: 6px; object-fit: cover; }
+        
+        .nav-group { display: flex; flex-direction: column; gap: 8px; flex-grow: 1; }
+        .nav-btn {
+            background: none; border: none; color: var(--text-muted);
+            padding: 12px 16px; text-align: left; font-size: 0.9rem; font-weight: 600;
+            border-radius: 8px; cursor: pointer; transition: all 0.2s;
+        }
+        .nav-btn:hover, .nav-btn.active {
+            background-color: var(--bg-card); color: var(--text-main);
+        }
+
+        /* --- MAIN INTERFACE ROUTER --- */
+        .main-content {
+            margin-left: 240px; flex-grow: 1; padding: 40px;
+            box-sizing: border-box; max-width: 1000px;
+        }
+        
+        .view-section { display: none; }
+        .view-section.active-view { display: block; }
+
+        header { margin-bottom: 32px; }
+        h1 { margin: 0 0 6px 0; font-size: 2rem; letter-spacing: -0.02em; }
+        .subtitle { margin: 0; color: var(--text-muted); font-size: 0.9rem; font-family: monospace; }
+
+        /* --- GLOBAL DEVELOPER CARD --- */
+        .global-dev-card {
+            display: flex; align-items: center; gap: 14px;
+            background-color: var(--bg-card); border: 1px solid var(--border-color);
+            border-radius: 12px; padding: 14px 20px; width: fit-content; min-width: 280px;
+        }
+        .global-dev-pfp { width: 44px; height: 44px; border-radius: 50%; object-fit: cover; border: 1px solid var(--border-color); }
+        .global-dev-info { font-size: 0.8rem; font-family: monospace; display: flex; flex-direction: column; gap: 4px; }
+        .global-dev-pulse { font-weight: 700; text-transform: uppercase; font-size: 0.75rem; }
+        .positive-badge { color: var(--success); text-shadow: 0 0 8px rgba(16, 185, 129, 0.2); }
+        .negative-badge { color: var(--warning); text-shadow: 0 0 8px rgba(249, 115, 22, 0.2); }
+        
+        .global-presence-text { font-weight: 700; color: var(--text-muted); text-transform: uppercase; font-size: 0.75rem; display: inline-flex; align-items: center; gap: 4px; }
+        .global-presence-text::before { content: '●'; font-size: 0.7rem; color: var(--text-muted); animation: blink 2s infinite; }
+
+        /* --- GRID TABLES & BOARDS --- */
+        .hub-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
+        .card { 
+            background-color: var(--bg-card); border: 1px solid var(--border-color); 
+            border-radius: 12px; padding: 20px; display: flex; flex-direction: column; justify-content: space-between; min-height: 160px;
+        }
+        .card-header-block { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 12px; }
+        .title { margin: 0; font-size: 1.15rem; color: var(--text-main); font-weight: 700; }
+        .project-thumb { width: 44px; height: 44px; border-radius: 8px; object-fit: cover; border: 1px solid var(--border-color); }
+        .description { color: var(--text-muted); font-size: 0.85rem; margin: 0 0 16px 0; line-height: 1.4; }
+        
+        .schedule-zone { font-size: 0.72rem; font-family: monospace; color: var(--text-muted); margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px dashed var(--border-color); display: flex; justify-content: space-between; align-items: center; }
+        .schedule-tag { font-weight: 700; padding: 2px 6px; border-radius: 4px; font-size: 0.65rem; }
+        .schedule-tag.ontime { background: rgba(255, 255, 255, 0.05); color: var(--text-main); border: 1px solid rgba(255, 255, 255, 0.1); }
+        .schedule-tag.delayed { background: rgba(249, 115, 22, 0.1); color: var(--warning); border: 1px solid rgba(249, 115, 22, 0.2); }
+
+        .prog-label { display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-muted); font-family: monospace; margin-bottom: 6px; }
+        .status-tag { color: var(--text-main); font-weight: 600; text-transform: uppercase; }
+        .status-tag.complete { color: var(--success); }
+        .progress-track { width: 100%; height: 5px; background-color: rgba(0,0,0,0.3); border-radius: 4px; overflow: hidden; }
+        .progress-fill { height: 100%; background-color: var(--text-main); width: 0%; transition: width 0.4s ease; }
+        .live-link { display: inline-flex; align-items: center; color: var(--success); text-decoration: none; font-weight: 600; font-size: 0.85rem; font-family: monospace; }
+
+        /* --- HOMEWORK EXTRA VARIANT --- */
+        .subject-badge { background-color: rgba(59, 130, 246, 0.1); color: var(--accent-blue); padding: 4px 8px; border-radius: 6px; font-size: 0.75rem; font-weight: 700; font-family: monospace; text-transform: uppercase; border: 1px solid rgba(59, 130, 246, 0.2); }
+        .due-date-label { font-size: 0.75rem; font-family: monospace; color: var(--warning); display: flex; align-items: center; gap: 4px; font-weight: 600; }
+        .due-date-label.imminent { color: var(--danger); }
+
+        /* --- SITTING CHART MAP DISPLAY --- */
+        .seating-container { background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 24px; text-align: center; }
+        .seating-image { max-width: 100%; height: auto; border-radius: 8px; border: 1px solid var(--border-color); margin-top: 16px; background-color: var(--bg-main); }
+        .seating-meta { font-family: monospace; font-size: 0.85rem; color: var(--text-muted); text-align: left; display: flex; flex-direction: column; gap: 6px; }
+
+        @keyframes blink { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
+        @keyframes slideIn { from { transform: translateX(120%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        .empty-state { text-align: center; color: var(--text-muted); padding: 40px; grid-column: 1 / -1; font-family: monospace; font-size: 0.85rem; }
+    </style>
+</head>
+<body>
+
+    <div id="notificationTray" class="notification-tray"></div>
+
+    <nav class="sidebar">
+        <div class="sidebar-brand">
+            <img class="brand-icon" src="https://i.pinimg.com/736x/89/bc/70/89bc70da9ac43241759c2710602103c6.jpg" alt="Brand Icon">
+            <span>David Lack Hub</span>
+        </div>
+        <div class="nav-group">
+            <button class="nav-btn active" onclick="switchView('default-view', this)">📊 Control Panel</button>
+            <button class="nav-btn" onclick="switchView('projects-view', this)">📂 Series Tracks</button>
+            <button class="nav-btn" onclick="switchView('homework-view', this)">📝 Homework Board</button>
+            <button class="nav-btn" onclick="switchView('seating-view', this)">🪑 Sitting Chart</button>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        
+        <section id="default-view" class="view-section active-view">
+            <header>
+                <h1>System Control Core</h1>
+                <p class="subtitle">// DEVELOPER LIVE FEED STATUS</p>
+            </header>
+            <div class="global-dev-card">
+                <img id="globalDevPfp" class="global-dev-pfp" src="https://www.w3schools.com/howto/img_avatar.png" alt="Dev Avatar" onerror="this.src='https://www.w3schools.com/howto/img_avatar.png'">
+                <div class="global-dev-info">
+                    <span id="globalDevPulse" class="global-dev-pulse positive-badge">Active</span>
+                    <span id="globalDevPresence" class="global-presence-text">Coding</span>
+                </div>
+            </div>
+        </section>
+
+        <section id="projects-view" class="view-section">
+            <header>
+                <h1>Active Targets</h1>
+                <p class="subtitle">// LIVE DATABASE PIPELINE INGESTION</p>
+            </header>
+            <div class="hub-grid" id="seriesGrid">
+                </div>
+        </section>
+
+        <section id="homework-view" class="view-section">
+            <header>
+                <h1>Classroom Homework Board</h1>
+                <p class="subtitle">// LIVE ASSIGNMENTS & DUE TASKS</p>
+            </header>
+            <div class="hub-grid" id="homeworkGrid">
+                </div>
+        </section>
+
+        <section id="seating-view" class="view-section">
+            <header>
+                <h1>Sitting Arrangement Map</h1>
+                <p class="subtitle">// CURRENT CLASSROOM DESK MATRIX</p>
+            </header>
+            <div class="seating-container">
+                <div class="seating-meta">
+                    <div><strong>Grid Layout:</strong> <span id="seatGridDim">Loading...</span></div>
+                    <div><strong>Structural Notes:</strong> <span id="seatNotes">No active layout adjustments logged.</span></div>
+                </div>
+                <img id="seatingImg" class="seating-image" src="" alt="Seating Chart Graphic" onerror="this.style.display='none'">
+            </div>
+        </section>
+
+    </main>
+
+    <script>
+        function switchView(viewId, clickedBtn) {
+            document.querySelectorAll('.view-section').forEach(view => view.classList.remove('active-view'));
+            document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
+            
+            document.getElementById(viewId).classList.add('active-view');
+            clickedBtn.classList.add('active');
+        }
+    </script>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+        // ==========================================
+        //  FIREBASE CONFIGURATION
+        // ==========================================
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY_HERE", 
+            authDomain: "gen-lang-client-0801332051.firebaseapp.com",
+            databaseURL: "https://gen-lang-client-0801332051-default-rtdb.firebaseio.com",
+            projectId: "gen-lang-client-0801332051",
+            storageBucket: "gen-lang-client-0801332051.appspot.com",
+            messagingSenderId: "YOUR_MESSAGING_SENDER_ID_HERE",
+            appId: "YOUR_APP_ID_HERE"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        // --- NATIVE NOTIFICATION SYSTEM INITIALIZER ---
+        if ("Notification" in window) {
+            if (Notification.permission !== "granted" && Notification.permission !== "denied") {
+                Notification.requestPermission();
+            }
+        }
+
+        // Helper engine to route true OS desktop alerts smoothly
+        function triggerNativeNotification(title, message) {
+            if ("Notification" in window && Notification.permission === "granted") {
+                new Notification(title, {
+                    body: message,
+                    icon: "https://i.pinimg.com/736x/89/bc/70/89bc70da9ac43241759c2710602103c6.jpg"
+                });
+            }
+        }
+
+        // PIPELINE 1: Developer Profile
+        const profileRef = ref(db, 'dev_profile');
+        onValue(profileRef, (snapshot) => {
+            const profileData = snapshot.val() || {};
+            const rawStatus = profileData.dev_status || 'Active'; 
+            const devPresence = profileData.dev_presence || 'Coding';
+            const devPfpUrl = profileData.dev_pfp || 'https://www.w3schools.com/howto/img_avatar.png';
+            
+            const pulseTarget = document.getElementById('globalDevPulse');
+            if (pulseTarget) {
+                const checkText = rawStatus.toLowerCase().trim();
+                const isNegative = checkText.includes('not') || checkText.includes('pause') || 
+                                   checkText.includes('off') || checkText.includes('break') || checkText.includes('stop');
+                
+                pulseTarget.className = `global-dev-pulse ${isNegative ? 'negative-badge' : 'positive-badge'}`;
+                pulseTarget.innerText = rawStatus; 
+            }
+            if (document.getElementById('globalDevPresence')) document.getElementById('globalDevPresence').innerText = devPresence;
+            if (document.getElementById('globalDevPfp')) document.getElementById('globalDevPfp').src = devPfpUrl;
+        });
+
+        // PIPELINE 2: Project Tracker
+        const projectsRef = ref(db, 'chud_series_projects');
+        onValue(projectsRef, (snapshot) => {
+            const data = snapshot.val();
+            const grid = document.getElementById('seriesGrid');
+            grid.innerHTML = '';
+            
+            if (!data) {
+                grid.innerHTML = '<div class="empty-state">// PIPELINE ONLINE: NO ENTRIES DETECTED</div>';
+                return;
+            }
+
+            Object.keys(data).forEach(id => {
+                if (id === 'placeholder') return; 
+                const project = data[id];
+                const progressValue = parseInt(project.progress || 0);
+                
+                const titleElement = `<h3 class="title">${project.name}</h3>`;
+                const imageElement = (project.img && project.img.trim() !== "") ? `<img class="project-thumb" src="${project.img}" alt="${project.name}" onerror="this.style.display='none'">` : ``;
+
+                let scheduleHTML = '';
+                if (progressValue < 100 && project.estimated_release_date) {
+                    const schedStatus = (project.schedule_status || project.status || 'on time').toLowerCase();
+                    const isDelayed = schedStatus.includes('delay');
+                    scheduleHTML = `
+                        <div class="schedule-zone">
+                            <span>EST: ${project.estimated_release_date}</span>
+                            <span class="schedule-tag ${isDelayed ? 'delayed' : 'ontime'}">${isDelayed ? 'DELAYED' : 'ON TIME'}</span>
+                        </div>
+                    `;
+                }
+
+                let bottomActionHTML = progressValue >= 100 ? `
+                    <div class="prog-label"><span class="status-tag complete">Deployed</span></div>
+                    <a class="live-link" href="${project.url || '#'}" target="_blank" rel="noopener noreferrer">⚡ Launch Site &rarr;</a>
+                ` : `
+                    <div class="prog-label"><span class="status-tag">${project.status || "Development"}</span><span>${progressValue}%</span></div>
+                    <div class="progress-track"><div class="progress-fill" style="width: ${progressValue}%"></div></div>
+                `;
+
+                grid.insertAdjacentHTML('beforeend', `
+                    <div class="card">
+                        <div><div class="card-header-block">${titleElement}${imageElement}</div><p class="description">${project.desc || 'No descriptions compiled.'}</p>${scheduleHTML}</div>
+                        <div>${bottomActionHTML}</div>
+                    </div>
+                `);
+            });
+        });
+
+        // PIPELINE 3: Homework Board & Dual-Layer Notification Scanner
+        const homeworkRef = ref(db, 'class_homework');
+        onValue(homeworkRef, (snapshot) => {
+            const data = snapshot.val();
+            const grid = document.getElementById('homeworkGrid');
+            const tray = document.getElementById('notificationTray');
+            
+            grid.innerHTML = '';
+            tray.innerHTML = ''; 
+
+            if (!data) {
+                grid.innerHTML = '<div class="empty-state">// NO ACTIVE HOMEWORK LOGGED. CHILL TIME.</div>';
+                return;
+            }
+
+            const today = new Date();
+            today.setHours(0,0,0,0); 
+
+            Object.keys(data).forEach(id => {
+                const item = data[id];
+                
+                let daysLeft = null;
+                let dateDisplay = item.due || 'Not Specified';
+                
+                if (item.due) {
+                    const parsedDueDate = new Date(item.due);
+                    if (!isNaN(parsedDueDate.getTime())) {
+                        parsedDueDate.setHours(0,0,0,0);
+                        const differenceInTime = parsedDueDate.getTime() - today.getTime();
+                        daysLeft = Math.ceil(differenceInTime / (1000 * 3600 * 24));
+                    }
+                }
+
+                let alertClass = "";
+                let subtextLabel = `⏳ Due: ${dateDisplay}`;
+                
+                if (daysLeft !== null) {
+                    if (daysLeft < 0) {
+                        subtextLabel = `❌ OVERDUE (${Math.abs(daysLeft)} Days Ago)`;
+                        alertClass = "imminent";
+                    } else if (daysLeft === 0) {
+                        subtextLabel = `🚨 DUE TODAY`;
+                        alertClass = "imminent";
+                    } else if (daysLeft === 1) {
+                        subtextLabel = `⚠️ DUE TOMORROW`;
+                        alertClass = "imminent";
+                    } else {
+                        subtextLabel = `⏳ Due in ${daysLeft} Days (${dateDisplay})`;
+                    }
+                }
+
+                // Render Dashboard Entry Card
+                grid.insertAdjacentHTML('beforeend', `
+                    <div class="card" style="min-height: 130px;">
+                        <div>
+                            <div class="card-header-block">
+                                <span class="subject-badge">${item.subject || 'General'}</span>
+                            </div>
+                            <p class="description" style="margin-bottom: 12px; color: var(--text-main); font-weight: 500;">${item.task}</p>
+                        </div>
+                        <div class="due-date-label ${alertClass}">
+                            ${subtextLabel}
+                        </div>
+                    </div>
+                `);
+
+                // --- DUAL NOTIFICATION ROUTING SYSTEM ---
+                if (daysLeft === 3 || daysLeft === 4) {
+                    // 1. In-Page UI Toast
+                    tray.insertAdjacentHTML('beforeend', `
+                        <div class="toast-alert">
+                            <div class="toast-header">
+                                <span style="color:var(--warning)">⚠️ HOMEWORK COUNTDOWN</span>
+                                <span>${daysLeft}d left</span>
+                            </div>
+                            <h4 class="toast-title">${item.subject || 'Assignment'} Reminder</h4>
+                            <p class="toast-desc">${item.task}</p>
+                        </div>
+                    `);
+                    // 2. Native OS Desktop Ping
+                    triggerNativeNotification(
+                        `⚠️ Homework Due in ${daysLeft} Days!`, 
+                        `Subject: ${item.subject || 'Classwork'} | Task: ${item.task}`
+                    );
+                } 
+                else if (daysLeft >= 0 && daysLeft <= 2) {
+                    // Urgent Fallback if even closer
+                    tray.insertAdjacentHTML('beforeend', `
+                        <div class="toast-alert urgent">
+                            <div class="toast-header">
+                                <span style="color:var(--danger)">🚨 URGENT DEADLINE</span>
+                                <span>${daysLeft === 0 ? 'Today' : daysLeft + 'd left'}</span>
+                            </div>
+                            <h4 class="toast-title">${item.subject || 'Assignment'}</h4>
+                            <p class="toast-desc">${item.task}</p>
+                        </div>
+                    `);
+                    
+                    let deadlineText = daysLeft === 0 ? "TODAY" : (daysLeft === 1 ? "TOMORROW" : "in 2 days");
+                    triggerNativeNotification(
+                        `🚨 CRITICAL DEADLINE: DUE ${deadlineText}!`, 
+                        `Subject: ${item.subject || 'Classwork'} | Task: ${item.task}`
+                    );
+                }
+            });
+        });
+
+        // PIPELINE 4: Sitting Arrangements Stream
+        const seatingRef = ref(db, 'sitting_layout');
+        onValue(seatingRef, (snapshot) => {
+            const data = snapshot.val() || {};
+            document.getElementById('seatGridDim').innerText = data.grid_dimensions || "N/A";
+            document.getElementById('seatNotes').innerText = data.notes || "No layout parameters noted.";
+            
+            const imgElement = document.getElementById('seatingImg');
+            if (data.chart_url && data.chart_url.trim() !== "") {
+                imgElement.src = data.chart_url;
+                imgElement.style.display = "block";
+            } else {
+                imgElement.style.display = "none";
+            }
+        });
+    </script>
+</body>
+</html>
