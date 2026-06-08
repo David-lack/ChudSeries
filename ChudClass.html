@@ -72,12 +72,6 @@
             background-color: var(--bg-card); color: var(--text-main);
         }
 
-        .user-session-panel {
-            font-family: monospace; font-size: 0.72rem; color: var(--text-muted);
-            border-top: 1px solid var(--border-color); padding-top: 12px;
-            overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-        }
-
         /* --- MAIN INTERFACE ROUTER --- */
         .main-content {
             margin-left: 240px; flex-grow: 1; padding: 40px;
@@ -127,9 +121,6 @@
             <button class="nav-btn active" onclick="switchView('homework-view', this)">📝 Homework Board</button>
             <button class="nav-btn" onclick="switchView('seating-view', this)">🪑 Sitting Chart</button>
         </div>
-        <div class="user-session-panel">
-            Session ID: <span id="userSessionId">Generating...</span>
-        </div>
     </nav>
 
     <main class="main-content">
@@ -165,7 +156,7 @@
             document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
             
             document.getElementById(viewId).classList.add('active-view');
-            clickedBtn.classList.add('active');
+            clickedBtn.clickedBtn = clickedBtn.classList.add('active');
         }
     </script>
 
@@ -177,22 +168,26 @@
         //  FIREBASE CONFIGURATION
         // ==========================================
         const firebaseConfig = {
- apiKey: "AIzaSyAtZ9TWRdg3zDgdoy64nJJtJvnSjcboW_w",
-  authDomain: "chud-class-tracker.firebaseapp.com",
-  databaseURL: "https://chud-class-tracker-default-rtdb.firebaseio.com",
-  projectId: "chud-class-tracker",
-  storageBucket: "chud-class-tracker.firebasestorage.app",
-  messagingSenderId: "246585543754",
-  appId: "1:246585543754:web:a26df56b7c018a6b612ab3"
+            apiKey: "YOUR_API_KEY_HERE", 
+            authDomain: "chud-class-tracker.firebaseapp.com",
+            databaseURL: "https://chud-class-tracker-default-rtdb.firebaseio.com",
+            projectId: "chud-class-tracker",
+            storageBucket: "chud-class-tracker.appspot.com",
+            messagingSenderId: "YOUR_MESSAGING_SENDER_ID_HERE",
+            appId: "YOUR_APP_ID_HERE"
         };
 
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
 
-        // --- PURE STATELESS MEMORY SESSIONS ---
-        // Instantly maps out a clean session string on every window init execution loop
-        const deviceID = 'session_' + Math.random().toString(36).substring(2, 7) + Math.random().toString(36).substring(2, 7);
-        document.getElementById('userSessionId').innerText = deviceID;
+        // --- SILENT DEVICE RECOGNITION (STEALTH MEMORY LOCK) ---
+        // Generates a persistent fingerprint signature unique to this screen window layout
+        const generateDeviceFingerprint = () => {
+            const screenSignature = `${screen.width}x${screen.height}x${screen.colorDepth}`;
+            const browserIdentity = navigator.userAgent.replace(/\s|[^a-zA-Z0-9]/g, "").substring(0, 15);
+            return `device_${browserIdentity}_${screenSignature}`;
+        };
+        const activeDeviceToken = generateDeviceFingerprint();
 
         // Request browser system push capabilities
         if ("Notification" in window) {
@@ -226,4 +221,111 @@
             }
 
             const today = new Date();
-            today.setHours(0,0
+            today.setHours(0,0,0,0); 
+
+            Object.keys(data).forEach(id => {
+                const item = data[id];
+                let daysLeft = null;
+                let dateDisplay = item.due || 'Not Specified';
+                
+                if (item.due) {
+                    const parsedDueDate = new Date(item.due);
+                    if (!isNaN(parsedDueDate.getTime())) {
+                        parsedDueDate.setHours(0,0,0,0);
+                        const differenceInTime = parsedDueDate.getTime() - today.getTime();
+                        daysLeft = Math.ceil(differenceInTime / (1000 * 3600 * 24));
+                    }
+                }
+
+                // GARBAGE COLLECTOR AUTOMATION (Clears out 1 full day after the due date)
+                if (daysLeft !== null && daysLeft <= -1) {
+                    const itemRef = ref(db, `class_homework/${id}`);
+                    remove(itemRef); 
+                    return; 
+                }
+
+                let alertClass = "";
+                let subtextLabel = `⏳ Due: ${dateDisplay}`;
+                
+                if (daysLeft !== null) {
+                    if (daysLeft === 0) {
+                        subtextLabel = `🚨 DUE TODAY`;
+                        alertClass = "imminent";
+                    } else if (daysLeft === 1) {
+                        subtextLabel = `⚠️ DUE TOMORROW`;
+                        alertClass = "imminent";
+                    } else {
+                        subtextLabel = `⏳ Due in ${daysLeft} Days (${dateDisplay})`;
+                    }
+                }
+
+                // Render Dashboard Item Cards
+                grid.insertAdjacentHTML('beforeend', `
+                    <div class="card">
+                        <div>
+                            <div class="card-header-block">
+                                <span class="subject-badge">${item.subject || 'General'}</span>
+                            </div>
+                            <p class="description" style="color: var(--text-main); font-weight: 500; margin-bottom: 8px;">${item.task}</p>
+                        </div>
+                        <div class="due-date-label ${alertClass}">
+                            ${subtextLabel}
+                        </div>
+                    </div>
+                `);
+
+                // Countdown alerts handling triggers (3 or 4 days away)
+                if (daysLeft === 3 || daysLeft === 4) {
+                    tray.insertAdjacentHTML('beforeend', `
+                        <div class="toast-alert">
+                            <div class="toast-header">
+                                <span style="color:var(--warning)">⚠️ HOMEWORK ALERT</span>
+                                <span>${daysLeft}d left</span>
+                            </div>
+                            <h4 class="toast-title">${item.subject || 'Assignment'} Reminder</h4>
+                            <p class="toast-desc">${item.task}</p>
+                        </div>
+                    `);
+                    triggerNativeNotification(
+                        `⚠️ Homework Due in ${daysLeft} Days!`, 
+                        `Subject: ${item.subject || 'Classwork'} | Task: ${item.task}`
+                    );
+                } 
+                else if (daysLeft >= 0 && daysLeft <= 2) {
+                    tray.insertAdjacentHTML('beforeend', `
+                        <div class="toast-alert urgent">
+                            <div class="toast-header">
+                                <span style="color:var(--danger)">🚨 DEADLINE IMMINENT</span>
+                                <span>${daysLeft === 0 ? 'Today' : daysLeft + 'd left'}</span>
+                            </div>
+                            <h4 class="toast-title">${item.subject || 'Assignment'}</h4>
+                            <p class="toast-desc">${item.task}</p>
+                        </div>
+                    `);
+                    let textContext = daysLeft === 0 ? "TODAY" : (daysLeft === 1 ? "TOMORROW" : "in 2 days");
+                    triggerNativeNotification(
+                        `🚨 CRITICAL DEADLINE: DUE ${textContext}!`, 
+                        `Subject: ${item.subject || 'Classwork'} | Task: ${item.task}`
+                    );
+                }
+            });
+        });
+
+        // PIPELINE 2: Seating Arrangements Fetch Engine
+        const seatingRef = ref(db, 'sitting_layout');
+        onValue(seatingRef, (snapshot) => {
+            const data = snapshot.val() || {};
+            document.getElementById('seatGridDim').innerText = data.grid_dimensions || "N/A";
+            document.getElementById('seatNotes').innerText = data.notes || "No layout parameters noted.";
+            
+            const imgElement = document.getElementById('seatingImg');
+            if (data.chart_url && data.chart_url.trim() !== "") {
+                imgElement.src = data.chart_url;
+                imgElement.style.display = "block";
+            } else {
+                imgElement.style.display = "none";
+            }
+        });
+    </script>
+</body>
+</html>
