@@ -128,7 +128,7 @@
             <button class="nav-btn" onclick="switchView('seating-view', this)">🪑 Sitting Chart</button>
         </div>
         <div class="user-session-panel">
-            Device ID: <span id="userSessionId">Generating...</span>
+            Session ID: <span id="userSessionId">Generating...</span>
         </div>
     </nav>
 
@@ -171,7 +171,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getDatabase, ref, onValue, remove } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+        import { getDatabase, ref, onValue, remove } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
         // ==========================================
         //  FIREBASE CONFIGURATION
@@ -187,150 +187,43 @@ import { getDatabase, ref, onValue, remove } from "https://www.gstatic.com/fireb
         };
 
         const app = initializeApp(firebaseConfig);
-const db = getDatabase(app);
+        const db = getDatabase(app);
 
-// --- PURE MEMORY SESSIONS (No Local Storage) ---
-// Generates a brand new, temporary ID every single time the page loads
-const deviceID = 'session_' + Math.random().toString(36).substring(2, 11);
-document.getElementById('userSessionId').innerText = deviceID;
+        // --- PURE STATELESS MEMORY SESSIONS ---
+        // Instantly maps out a clean session string on every window init execution loop
+        const deviceID = 'session_' + Math.random().toString(36).substring(2, 7) + Math.random().toString(36).substring(2, 7);
+        document.getElementById('userSessionId').innerText = deviceID;
 
-// Request browser system push capabilities
-if ("Notification" in window) {
-    if (Notification.permission !== "granted" && Notification.permission !== "denied") {
-        Notification.requestPermission();
-    }
-}
-
-function triggerNativeNotification(title, message) {
-    if ("Notification" in window && Notification.permission === "granted") {
-        new Notification(title, {
-            body: message,
-            icon: "https://i.pinimg.com/736x/89/bc/70/89bc70da9ac43241759c2710602103c6.jpg"
-        });
-    }
-}
-
-// PIPELINE 1: Homework Data Gathering & Real-time Auto-Deletion Loops
-const homeworkRef = ref(db, 'class_homework');
-onValue(homeworkRef, (snapshot) => {
-    const data = snapshot.val();
-    const grid = document.getElementById('homeworkGrid');
-    const tray = document.getElementById('notificationTray');
-    
-    grid.innerHTML = '';
-    tray.innerHTML = ''; 
-
-    if (!data) {
-        grid.innerHTML = '<div class="empty-state">// NO ACTIVE HOMEWORK LOGGED. CHILL TIME.</div>';
-        return;
-    }
-
-    const today = new Date();
-    today.setHours(0,0,0,0); 
-
-    Object.keys(data).forEach(id => {
-        const item = data[id];
-        let daysLeft = null;
-        let dateDisplay = item.due || 'Not Specified';
-        
-        if (item.due) {
-            const parsedDueDate = new Date(item.due);
-            if (!isNaN(parsedDueDate.getTime())) {
-                parsedDueDate.setHours(0,0,0,0);
-                const differenceInTime = parsedDueDate.getTime() - today.getTime();
-                daysLeft = Math.ceil(differenceInTime / (1000 * 3600 * 24));
+        // Request browser system push capabilities
+        if ("Notification" in window) {
+            if (Notification.permission !== "granted" && Notification.permission !== "denied") {
+                Notification.requestPermission();
             }
         }
 
-        // GARBAGE COLLECTOR AUTOMATION (Clears out 1 full day after the due date)
-        if (daysLeft !== null && daysLeft <= -1) {
-            const itemRef = ref(db, `class_homework/${id}`);
-            remove(itemRef); 
-            return; 
-        }
-
-        let alertClass = "";
-        let subtextLabel = `⏳ Due: ${dateDisplay}`;
-        
-        if (daysLeft !== null) {
-            if (daysLeft === 0) {
-                subtextLabel = `🚨 DUE TODAY`;
-                alertClass = "imminent";
-            } else if (daysLeft === 1) {
-                subtextLabel = `⚠️ DUE TOMORROW`;
-                alertClass = "imminent";
-            } else {
-                subtextLabel = `⏳ Due in ${daysLeft} Days (${dateDisplay})`;
+        function triggerNativeNotification(title, message) {
+            if ("Notification" in window && Notification.permission === "granted") {
+                new Notification(title, {
+                    body: message,
+                    icon: "https://i.pinimg.com/736x/89/bc/70/89bc70da9ac43241759c2710602103c6.jpg"
+                });
             }
         }
 
-        // Render Dashboard Item Cards
-        grid.insertAdjacentHTML('beforeend', `
-            <div class="card">
-                <div>
-                    <div class="card-header-block">
-                        <span class="subject-badge">${item.subject || 'General'}</span>
-                    </div>
-                    <p class="description" style="color: var(--text-main); font-weight: 500; margin-bottom: 8px;">${item.task}</p>
-                </div>
-                <div class="due-date-label ${alertClass}">
-                    ${subtextLabel}
-                </div>
-            </div>
-        `);
+        // PIPELINE 1: Homework Data Gathering & Real-time Auto-Deletion Loops
+        const homeworkRef = ref(db, 'class_homework');
+        onValue(homeworkRef, (snapshot) => {
+            const data = snapshot.val();
+            const grid = document.getElementById('homeworkGrid');
+            const tray = document.getElementById('notificationTray');
+            
+            grid.innerHTML = '';
+            tray.innerHTML = ''; 
 
-        // Countdown alerts handling triggers (3 or 4 days away)
-        if (daysLeft === 3 || daysLeft === 4) {
-            tray.insertAdjacentHTML('beforeend', `
-                <div class="toast-alert">
-                    <div class="toast-header">
-                        <span style="color:var(--warning)">⚠️ HOMEWORK ALERT</span>
-                        <span>${daysLeft}d left</span>
-                    </div>
-                    <h4 class="toast-title">${item.subject || 'Assignment'} Reminder</h4>
-                    <p class="toast-desc">${item.task}</p>
-                </div>
-            `);
-            triggerNativeNotification(
-                `⚠️ Homework Due in ${daysLeft} Days!`, 
-                `Subject: ${item.subject || 'Classwork'} | Task: ${item.task}`
-            );
-        } 
-        else if (daysLeft >= 0 && daysLeft <= 2) {
-            tray.insertAdjacentHTML('beforeend', `
-                <div class="toast-alert urgent">
-                    <div class="toast-header">
-                        <span style="color:var(--danger)">🚨 DEADLINE IMMINENT</span>
-                        <span>${daysLeft === 0 ? 'Today' : daysLeft + 'd left'}</span>
-                    </div>
-                    <h4 class="toast-title">${item.subject || 'Assignment'}</h4>
-                    <p class="toast-desc">${item.task}</p>
-                </div>
-            `);
-            let textContext = daysLeft === 0 ? "TODAY" : (daysLeft === 1 ? "TOMORROW" : "in 2 days");
-            triggerNativeNotification(
-                `🚨 CRITICAL DEADLINE: DUE ${textContext}!`, 
-                `Subject: ${item.subject || 'Classwork'} | Task: ${item.task}`
-            );
-        }
-    });
-});
+            if (!data) {
+                grid.innerHTML = '<div class="empty-state">// NO ACTIVE HOMEWORK LOGGED. CHILL TIME.</div>';
+                return;
+            }
 
-// PIPELINE 2: Seating Arrangements Fetch Engine
-const seatingRef = ref(db, 'sitting_layout');
-onValue(seatingRef, (snapshot) => {
-    const data = snapshot.val() || {};
-    document.getElementById('seatGridDim').innerText = data.grid_dimensions || "N/A";
-    document.getElementById('seatNotes').innerText = data.notes || "No layout parameters noted.";
-    
-    const imgElement = document.getElementById('seatingImg');
-    if (data.chart_url && data.chart_url.trim() !== "") {
-        imgElement.src = data.chart_url;
-        imgElement.style.display = "block";
-    } else {
-        imgElement.style.display = "none";
-    }
-});
-    </script>
-</body>
-</html>
+            const today = new Date();
+            today.setHours(0,0
