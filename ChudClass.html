@@ -162,7 +162,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+        import { getDatabase, ref, onValue, remove } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
         // ==========================================
         //  FIREBASE CONFIGURATION
@@ -196,7 +196,7 @@
             }
         }
 
-        // PIPELINE 1: Homework Data Gathering & Processing Loops
+        // PIPELINE 1: Homework Data Gathering & Real-time Auto-Deletion Loops
         const homeworkRef = ref(db, 'class_homework');
         onValue(homeworkRef, (snapshot) => {
             const data = snapshot.val();
@@ -228,14 +228,20 @@
                     }
                 }
 
+                // --- GARBAGE COLLECTOR AUTOMATION ---
+                // If the math shows daysLeft is -1 or less, it means the calendar day has passed.
+                // We clear it out 1 full day after the due date (once it hits -1).
+                if (daysLeft !== null && daysLeft <= -1) {
+                    const itemRef = ref(db, `class_homework/${id}`);
+                    remove(itemRef); // Sends stealth drop request straight to Firebase
+                    return; // Stop building this card UI immediately
+                }
+
                 let alertClass = "";
                 let subtextLabel = `⏳ Due: ${dateDisplay}`;
                 
                 if (daysLeft !== null) {
-                    if (daysLeft < 0) {
-                        subtextLabel = `❌ OVERDUE (${Math.abs(daysLeft)} Days Ago)`;
-                        alertClass = "imminent";
-                    } else if (daysLeft === 0) {
+                    if (daysLeft === 0) {
                         subtextLabel = `🚨 DUE TODAY`;
                         alertClass = "imminent";
                     } else if (daysLeft === 1) {
