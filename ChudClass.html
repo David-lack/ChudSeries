@@ -30,6 +30,20 @@
             overflow-x: hidden;
         }
 
+        /* --- AUTH SYSTEM OVERLAY SCREEN --- */
+        #authOverlay {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background-color: var(--bg-main); z-index: 20000;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            gap: 16px; transition: opacity 0.4s ease;
+        }
+        .spinner {
+            width: 40px; height: 40px;
+            border: 4px solid rgba(255,255,255,0.1); border-left-color: var(--accent-blue);
+            border-radius: 50%; animation: spin 1s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
         /* --- NOTIFICATION ALERT TOAST BANNER --- */
         .notification-tray {
             position: fixed; top: 20px; right: 20px;
@@ -72,6 +86,12 @@
             background-color: var(--bg-card); color: var(--text-main);
         }
 
+        .user-session-panel {
+            font-family: monospace; font-size: 0.72rem; color: var(--text-muted);
+            border-top: 1px solid var(--border-color); padding-top: 12px;
+            overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+
         /* --- MAIN INTERFACE ROUTER --- */
         .main-content {
             margin-left: 240px; flex-grow: 1; padding: 40px;
@@ -110,6 +130,11 @@
 </head>
 <body>
 
+    <div id="authOverlay">
+        <div class="spinner"></div>
+        <div style="font-family: monospace; font-size: 0.85rem; color: var(--text-muted);">SECURING DEVICES PATTERNS...</div>
+    </div>
+
     <div id="notificationTray" class="notification-tray"></div>
 
     <nav class="sidebar">
@@ -120,6 +145,9 @@
         <div class="nav-group">
             <button class="nav-btn active" onclick="switchView('homework-view', this)">📝 Homework Board</button>
             <button class="nav-btn" onclick="switchView('seating-view', this)">🪑 Sitting Chart</button>
+        </div>
+        <div class="user-session-panel">
+            ID: <span id="userSessionId">Verifying...</span>
         </div>
     </nav>
 
@@ -163,6 +191,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getDatabase, ref, onValue, remove } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
         // ==========================================
         //  FIREBASE CONFIGURATION
@@ -179,6 +208,33 @@
 
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
+        const auth = getAuth(app);
+
+        // --- ENFORCE FOREVER LOGIN PERSISTENCE ---
+        setPersistence(auth, browserLocalPersistence)
+            .then(() => {
+                // Instantly log in anonymously if there isn't an active user found in localStorage
+                return signInAnonymously(auth);
+            })
+            .catch((error) => {
+                console.error("Authentication security fault:", error);
+            });
+
+        // Watch session lifecycle states securely
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                // Update interface panel with their permanent unique ID string
+                document.getElementById('userSessionId').innerText = user.uid.substring(0, 10) + "...";
+                
+                // Dissolve the loading screen layer smoothly
+                const overlay = document.getElementById('authOverlay');
+                overlay.style.opacity = '0';
+                setTimeout(() => overlay.style.display = 'none', 400);
+
+                // Run main data processing pipelines securely now that authentication is verified
+                initializeDataPipelines();
+            }
+        });
 
         // Request browser system push capabilities
         if ("Notification" in window) {
@@ -196,129 +252,129 @@
             }
         }
 
-        // PIPELINE 1: Homework Data Gathering & Real-time Auto-Deletion Loops
-        const homeworkRef = ref(db, 'class_homework');
-        onValue(homeworkRef, (snapshot) => {
-            const data = snapshot.val();
-            const grid = document.getElementById('homeworkGrid');
-            const tray = document.getElementById('notificationTray');
-            
-            grid.innerHTML = '';
-            tray.innerHTML = ''; 
-
-            if (!data) {
-                grid.innerHTML = '<div class="empty-state">// NO ACTIVE HOMEWORK LOGGED. CHILL TIME.</div>';
-                return;
-            }
-
-            const today = new Date();
-            today.setHours(0,0,0,0); 
-
-            Object.keys(data).forEach(id => {
-                const item = data[id];
-                let daysLeft = null;
-                let dateDisplay = item.due || 'Not Specified';
+        function initializeDataPipelines() {
+            // PIPELINE 1: Homework Board Management & Auto-Clearing Garbage Collector
+            const homeworkRef = ref(db, 'class_homework');
+            onValue(homeworkRef, (snapshot) => {
+                const data = snapshot.val();
+                const grid = document.getElementById('homeworkGrid');
+                const tray = document.getElementById('notificationTray');
                 
-                if (item.due) {
-                    const parsedDueDate = new Date(item.due);
-                    if (!isNaN(parsedDueDate.getTime())) {
-                        parsedDueDate.setHours(0,0,0,0);
-                        const differenceInTime = parsedDueDate.getTime() - today.getTime();
-                        daysLeft = Math.ceil(differenceInTime / (1000 * 3600 * 24));
+                grid.innerHTML = '';
+                tray.innerHTML = ''; 
+
+                if (!data) {
+                    grid.innerHTML = '<div class="empty-state">// NO ACTIVE HOMEWORK LOGGED. CHILL TIME.</div>';
+                    return;
+                }
+
+                const today = new Date();
+                today.setHours(0,0,0,0); 
+
+                Object.keys(data).forEach(id => {
+                    const item = data[id];
+                    let daysLeft = null;
+                    let dateDisplay = item.due || 'Not Specified';
+                    
+                    if (item.due) {
+                        const parsedDueDate = new Date(item.due);
+                        if (!isNaN(parsedDueDate.getTime())) {
+                            parsedDueDate.setHours(0,0,0,0);
+                            const differenceInTime = parsedDueDate.getTime() - today.getTime();
+                            daysLeft = Math.ceil(differenceInTime / (1000 * 3600 * 24));
+                        }
                     }
-                }
 
-                // --- GARBAGE COLLECTOR AUTOMATION ---
-                // If the math shows daysLeft is -1 or less, it means the calendar day has passed.
-                // We clear it out 1 full day after the due date (once it hits -1).
-                if (daysLeft !== null && daysLeft <= -1) {
-                    const itemRef = ref(db, `class_homework/${id}`);
-                    remove(itemRef); // Sends stealth drop request straight to Firebase
-                    return; // Stop building this card UI immediately
-                }
-
-                let alertClass = "";
-                let subtextLabel = `⏳ Due: ${dateDisplay}`;
-                
-                if (daysLeft !== null) {
-                    if (daysLeft === 0) {
-                        subtextLabel = `🚨 DUE TODAY`;
-                        alertClass = "imminent";
-                    } else if (daysLeft === 1) {
-                        subtextLabel = `⚠️ DUE TOMORROW`;
-                        alertClass = "imminent";
-                    } else {
-                        subtextLabel = `⏳ Due in ${daysLeft} Days (${dateDisplay})`;
+                    // GARBAGE COLLECTOR AUTOMATION (Clears out 1 full day after the due date)
+                    if (daysLeft !== null && daysLeft <= -1) {
+                        const itemRef = ref(db, `class_homework/${id}`);
+                        remove(itemRef); 
+                        return; 
                     }
-                }
 
-                // Render Dashboard Item Cards
-                grid.insertAdjacentHTML('beforeend', `
-                    <div class="card">
-                        <div>
-                            <div class="card-header-block">
-                                <span class="subject-badge">${item.subject || 'General'}</span>
-                            </div>
-                            <p class="description" style="color: var(--text-main); font-weight: 500; margin-bottom: 8px;">${item.task}</p>
-                        </div>
-                        <div class="due-date-label ${alertClass}">
-                            ${subtextLabel}
-                        </div>
-                    </div>
-                `);
+                    let alertClass = "";
+                    let subtextLabel = `⏳ Due: ${dateDisplay}`;
+                    
+                    if (daysLeft !== null) {
+                        if (daysLeft === 0) {
+                            subtextLabel = `🚨 DUE TODAY`;
+                            alertClass = "imminent";
+                        } else if (daysLeft === 1) {
+                            subtextLabel = `⚠️ DUE TOMORROW`;
+                            alertClass = "imminent";
+                        } else {
+                            subtextLabel = `⏳ Due in ${daysLeft} Days (${dateDisplay})`;
+                        }
+                    }
 
-                // Countdown alerts handling triggers (3 or 4 days away)
-                if (daysLeft === 3 || daysLeft === 4) {
-                    tray.insertAdjacentHTML('beforeend', `
-                        <div class="toast-alert">
-                            <div class="toast-header">
-                                <span style="color:var(--warning)">⚠️ HOMEWORK ALERT</span>
-                                <span>${daysLeft}d left</span>
+                    // Render Dashboard Item Cards
+                    grid.insertAdjacentHTML('beforeend', `
+                        <div class="card">
+                            <div>
+                                <div class="card-header-block">
+                                    <span class="subject-badge">${item.subject || 'General'}</span>
+                                </div>
+                                <p class="description" style="color: var(--text-main); font-weight: 500; margin-bottom: 8px;">${item.task}</p>
                             </div>
-                            <h4 class="toast-title">${item.subject || 'Assignment'} Reminder</h4>
-                            <p class="toast-desc">${item.task}</p>
+                            <div class="due-date-label ${alertClass}">
+                                ${subtextLabel}
+                            </div>
                         </div>
                     `);
-                    triggerNativeNotification(
-                        `⚠️ Homework Due in ${daysLeft} Days!`, 
-                        `Subject: ${item.subject || 'Classwork'} | Task: ${item.task}`
-                    );
-                } 
-                else if (daysLeft >= 0 && daysLeft <= 2) {
-                    tray.insertAdjacentHTML('beforeend', `
-                        <div class="toast-alert urgent">
-                            <div class="toast-header">
-                                <span style="color:var(--danger)">🚨 DEADLINE IMMINENT</span>
-                                <span>${daysLeft === 0 ? 'Today' : daysLeft + 'd left'}</span>
+
+                    // Countdown notifications trigger engines (Exactly 3 or 4 days out)
+                    if (daysLeft === 3 || daysLeft === 4) {
+                        tray.insertAdjacentHTML('beforeend', `
+                            <div class="toast-alert">
+                                <div class="toast-header">
+                                    <span style="color:var(--warning)">⚠️ HOMEWORK ALERT</span>
+                                    <span>${daysLeft}d left</span>
+                                </div>
+                                <h4 class="toast-title">${item.subject || 'Assignment'} Reminder</h4>
+                                <p class="toast-desc">${item.task}</p>
                             </div>
-                            <h4 class="toast-title">${item.subject || 'Assignment'}</h4>
-                            <p class="toast-desc">${item.task}</p>
-                        </div>
-                    `);
-                    let textContext = daysLeft === 0 ? "TODAY" : (daysLeft === 1 ? "TOMORROW" : "in 2 days");
-                    triggerNativeNotification(
-                        `🚨 CRITICAL DEADLINE: DUE ${textContext}!`, 
-                        `Subject: ${item.subject || 'Classwork'} | Task: ${item.task}`
-                    );
+                        `);
+                        triggerNativeNotification(
+                            `⚠️ Homework Due in ${daysLeft} Days!`, 
+                            `Subject: ${item.subject || 'Classwork'} | Task: ${item.task}`
+                        );
+                    } 
+                    else if (daysLeft >= 0 && daysLeft <= 2) {
+                        tray.insertAdjacentHTML('beforeend', `
+                            <div class="toast-alert urgent">
+                                <div class="toast-header">
+                                    <span style="color:var(--danger)">🚨 DEADLINE IMMINENT</span>
+                                    <span>${daysLeft === 0 ? 'Today' : daysLeft + 'd left'}</span>
+                                </div>
+                                <h4 class="toast-title">${item.subject || 'Assignment'}</h4>
+                                <p class="toast-desc">${item.task}</p>
+                            </div>
+                        `);
+                        let textContext = daysLeft === 0 ? "TODAY" : (daysLeft === 1 ? "TOMORROW" : "in 2 days");
+                        triggerNativeNotification(
+                            `🚨 CRITICAL DEADLINE: DUE ${textContext}!`, 
+                            `Subject: ${item.subject || 'Classwork'} | Task: ${item.task}`
+                        );
+                    }
+                });
+            });
+
+            // PIPELINE 2: Seating Arrangements Fetch Engine
+            const seatingRef = ref(db, 'sitting_layout');
+            onValue(seatingRef, (snapshot) => {
+                const data = snapshot.val() || {};
+                document.getElementById('seatGridDim').innerText = data.grid_dimensions || "N/A";
+                document.getElementById('seatNotes').innerText = data.notes || "No layout parameters noted.";
+                
+                const imgElement = document.getElementById('seatingImg');
+                if (data.chart_url && data.chart_url.trim() !== "") {
+                    imgElement.src = data.chart_url;
+                    imgElement.style.display = "block";
+                } else {
+                    imgElement.style.display = "none";
                 }
             });
-        });
-
-        // PIPELINE 2: Seating Arrangements Fetch Engine
-        const seatingRef = ref(db, 'sitting_layout');
-        onValue(seatingRef, (snapshot) => {
-            const data = snapshot.val() || {};
-            document.getElementById('seatGridDim').innerText = data.grid_dimensions || "N/A";
-            document.getElementById('seatNotes').innerText = data.notes || "No layout parameters noted.";
-            
-            const imgElement = document.getElementById('seatingImg');
-            if (data.chart_url && data.chart_url.trim() !== "") {
-                imgElement.src = data.chart_url;
-                imgElement.style.display = "block";
-            } else {
-                imgElement.style.display = "none";
-            }
-        });
+        }
     </script>
 </body>
 </html>
