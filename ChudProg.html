@@ -20,16 +20,13 @@
             --text-muted: #9ea4b0;      /* Soft ash grey for text details */
             
             /* Accents & Utility Colors */
-            --accent: #e2e8f0;          /* Silver/light grey signature highlight */
-            --success: #10b981;         /* Kept emerald green for Deployed / On Time states */
-            --warning: #f97316;         /* Orange for Delayed alerts */
-            --purple: #94a3b8;          /* Steel gray shift for the presence dot */
+            --success: #10b981;         /* Emerald green for positive states */
+            --warning: #f97316;         /* Orange for negative / inactive states */
         }
 
         body {
             margin: 0; padding: 0;
             font-family: system-ui, sans-serif;
-            /* Dynamic Light-to-Dark Metallic Background Gradient */
             background: linear-gradient(135deg, var(--bg-main-start) 0%, var(--bg-main-end) 100%);
             background-attachment: fixed;
             color: var(--text-main);
@@ -74,9 +71,11 @@
         }
         .global-dev-pfp { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; border: 1px solid var(--border-color); background-color: var(--bg-main-end); flex-shrink: 0; }
         .global-dev-info { font-size: 0.78rem; font-family: monospace; display: flex; flex-direction: column; gap: 2px; }
+        
+        /* Direct Layout Classes for Status Texts */
         .global-dev-pulse { font-weight: 600; font-size: 0.72rem; text-transform: uppercase; }
-        .global-dev-pulse.active { color: var(--text-main); text-shadow: 0 0 8px rgba(255,255,255,0.2); }
-        .global-dev-pulse.paused { color: var(--warning); }
+        .positive-badge { color: var(--success) !important; text-shadow: 0 0 8px rgba(16, 185, 129, 0.2); }
+        .negative-badge { color: var(--warning) !important; text-shadow: 0 0 8px rgba(249, 115, 22, 0.2); }
         
         .global-presence-text { font-weight: 700; color: var(--text-muted); text-transform: uppercase; font-size: 0.75rem; display: inline-flex; align-items: center; gap: 4px; }
         .global-presence-text::before { content: '●'; font-size: 0.7rem; color: var(--text-muted); animation: blink 2s infinite; }
@@ -84,7 +83,6 @@
         /* Projects Layout Grid */
         .series-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
         
-        /* Dynamic Light-to-Dark Grey Gradient on Cards */
         .card { 
             background: linear-gradient(145deg, var(--bg-card-start) 0%, var(--bg-card-end) 100%); 
             border: 1px solid var(--border-color); 
@@ -100,7 +98,6 @@
 
         .description { color: var(--text-muted); font-size: 0.88rem; margin: 0 0 20px 0; line-height: 1.4; }
         
-        /* Updated Schedule Meta Layout */
         .schedule-zone { font-size: 0.75rem; font-family: monospace; color: var(--text-muted); margin-bottom: 14px; padding-bottom: 12px; border-bottom: 1px dashed var(--border-color); display: flex; justify-content: space-between; align-items: center; }
         .schedule-tag { font-weight: 700; padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; text-transform: uppercase; }
         .schedule-tag.ontime { background: rgba(255, 255, 255, 0.08); color: var(--text-main); border: 1px solid rgba(255, 255, 255, 0.15); }
@@ -145,19 +142,31 @@
         onValue(profileRef, (snapshot) => {
             const profileData = snapshot.val() || {};
             
-            const rawStatus = (profileData.dev_status || 'active').toLowerCase();
+            const rawStatus = profileData.dev_status || 'Active'; 
             const devPresence = profileData.dev_presence || 'Coding';
             const devPfpUrl = profileData.dev_pfp || 'https://www.w3schools.com/howto/img_avatar.png';
             
-            // SMART STATUS CHECKER: Detects any status values matching paused, break, off, or pause
-            const isPaused = rawStatus.includes('pause') || rawStatus.includes('break') || rawStatus.includes('off');
-            
-            const statusLabel = isPaused ? 'Development Paused' : 'Active';
             const pulseTarget = document.getElementById('globalDevPulse');
             
             if (pulseTarget) {
-                pulseTarget.className = `global-dev-pulse ${isPaused ? 'paused' : 'active'}`;
-                pulseTarget.innerText = statusLabel;
+                const checkText = rawStatus.toLowerCase().trim();
+                
+                // Checks for negative/inactive keyword patterns
+                const isNegative = checkText.includes('not') || 
+                                   checkText.includes('pause') || 
+                                   checkText.includes('off') || 
+                                   checkText.includes('break') || 
+                                   checkText.includes('stop');
+                
+                // Correct styling assignments
+                if (isNegative) {
+                    pulseTarget.className = "global-dev-pulse negative-badge";
+                } else {
+                    pulseTarget.className = "global-dev-pulse positive-badge";
+                }
+                
+                // Directly puts your text node inside the element cleanly
+                pulseTarget.innerText = rawStatus; 
             }
             
             if (document.getElementById('globalDevPresence')) {
@@ -194,10 +203,7 @@
 
                 let scheduleHTML = '';
                 if (progressValue < 100 && project.estimated_release_date) {
-                    
-                    // FALLBACK METHOD: Syncs with schedule_status OR the main status property safely
                     const schedStatus = (project.schedule_status || project.status || 'on time').toLowerCase();
-                    
                     const isDelayed = schedStatus.includes('delay');
                     const stateClass = isDelayed ? 'delayed' : 'ontime';
                     const stateLabel = isDelayed ? 'DELAYED' : 'ON TIME';
@@ -266,7 +272,7 @@
             <div class="global-dev-card">
                 <img id="globalDevPfp" class="global-dev-pfp" src="https://www.w3schools.com/howto/img_avatar.png" alt="Dev Avatar" onerror="this.src='https://www.w3schools.com/howto/img_avatar.png'">
                 <div class="global-dev-info">
-                    <span id="globalDevPulse" class="global-dev-pulse active">Active</span>
+                    <span id="globalDevPulse" class="global-dev-pulse positive-badge">Active</span>
                     <span id="globalDevPresence" class="global-presence-text">Coding</span>
                 </div>
             </div>
@@ -277,4 +283,4 @@
     </div>
 
 </body>
-</html> 
+</html>
