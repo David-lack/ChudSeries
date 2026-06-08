@@ -4,170 +4,66 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Classroom Hub</title>
-    
-    <link rel="icon" type="image/jpeg" href="https://i.pinimg.com/736x/89/bc/70/89bc70da9ac43241759c2710602103c6.jpg">
-
     <style>
         :root {
-            --bg-main: #111215;         /* Deep Onyx Slate */
-            --bg-sidebar: #17191c;      /* Structured Matte Sidebar */
-            --bg-card: #1c1e22;         /* Raised Dashboard Cards */
-            --border-color: #26292e;    /* Clean Dark Panel Borders */
-            --text-main: #f5f5f7;       /* Ice White */
-            --text-muted: #8e94a0;      /* Ash Muted Grey */
-            --success: #10b981;         /* Emerald Green */
-            --warning: #f97316;         /* Accent Orange */
-            --accent-blue: #3b82f6;     /* Action Blue */
-            --danger: #ef4444;          /* Alert Crimson */
+            --bg-main: #0f172a; --bg-card: #1e293b; --text-main: #f8fafc;
+            --accent: #38bdf8; --border: #334155;
         }
+        body { margin: 0; font-family: 'Segoe UI', sans-serif; background: var(--bg-main); color: var(--text-main); display: flex; height: 100vh; }
 
-        body {
-            margin: 0; padding: 0;
-            font-family: system-ui, sans-serif;
-            background-color: var(--bg-main);
-            color: var(--text-main);
-            display: flex; min-height: 100vh;
-            overflow-x: hidden;
+        /* Login Overlay */
+        #loginOverlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.7); backdrop-filter: blur(8px);
+            display: flex; justify-content: center; align-items: center; z-index: 9999;
         }
+        .login-card {
+            background: rgba(30, 41, 59, 0.7); border: 1px solid var(--border);
+            padding: 40px; border-radius: 24px; width: 320px; text-align: center;
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
+        }
+        .login-card h2 { margin-top: 0; }
+        .login-card input { width: 100%; padding: 12px; margin: 15px 0; background: #0f172a; border: 1px solid var(--border); color: white; border-radius: 8px; box-sizing: border-box; }
+        .login-card button { width: 100%; padding: 12px; background: var(--accent); border: none; border-radius: 8px; color: #000; font-weight: bold; cursor: pointer; }
 
-        /* --- NOTIFICATION ALERT TOAST BANNER --- */
-        .notification-tray {
-            position: fixed; top: 20px; right: 20px;
-            display: flex; flex-direction: column; gap: 10px;
-            z-index: 10000; max-width: 360px; width: 100%;
-        }
-        .toast-alert {
-            background-color: #1a1515; border-left: 4px solid var(--warning);
-            border-top: 1px solid var(--border-color); border-right: 1px solid var(--border-color); border-bottom: 1px solid var(--border-color);
-            padding: 16px; border-radius: 8px; color: var(--text-main);
-            box-shadow: 0 10px 25px rgba(0,0,0,0.4);
-            display: flex; flex-direction: column; gap: 6px;
-            animation: slideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-        }
-        .toast-alert.urgent { border-left-color: var(--danger); background-color: #201314; }
-        .toast-header { font-size: 0.75rem; font-family: monospace; text-transform: uppercase; font-weight: 700; display: flex; justify-content: space-between; }
-        .toast-title { margin: 0; font-size: 0.9rem; font-weight: 600; }
-        .toast-desc { margin: 0; font-size: 0.8rem; color: var(--text-muted); line-height: 1.4; }
-
-        /* --- SIDEBAR NAVIGATION --- */
-        .sidebar {
-            width: 240px; background-color: var(--bg-sidebar);
-            border-right: 1px solid var(--border-color);
-            display: flex; flex-direction: column; padding: 24px 16px;
-            box-sizing: border-box; position: fixed; height: 100vh;
-        }
-        .sidebar-brand {
-            display: flex; align-items: center; gap: 10px; margin-bottom: 32px;
-            font-weight: 700; font-size: 1.1rem; letter-spacing: -0.02em;
-        }
-        .brand-icon { width: 32px; height: 32px; border-radius: 6px; object-fit: cover; }
-        
-        .nav-group { display: flex; flex-direction: column; gap: 8px; flex-grow: 1; }
-        .nav-btn {
-            background: none; border: none; color: var(--text-muted);
-            padding: 12px 16px; text-align: left; font-size: 0.9rem; font-weight: 600;
-            border-radius: 8px; cursor: pointer; transition: all 0.2s;
-        }
-        .nav-btn:hover, .nav-btn.active {
-            background-color: var(--bg-card); color: var(--text-main);
-        }
-
-        /* --- MAIN INTERFACE ROUTER --- */
-        .main-content {
-            margin-left: 240px; flex-grow: 1; padding: 40px;
-            box-sizing: border-box; max-width: 1000px;
-        }
-        
-        .view-section { display: none; }
-        .view-section.active-view { display: block; }
-
-        header { margin-bottom: 32px; }
-        h1 { margin: 0 0 6px 0; font-size: 2rem; letter-spacing: -0.02em; }
-        .subtitle { margin: 0; color: var(--text-muted); font-size: 0.9rem; font-family: monospace; }
-
-        /* --- GRID TABLES & BOARDS --- */
-        .hub-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
-        .card { 
-            background-color: var(--bg-card); border: 1px solid var(--border-color); 
-            border-radius: 12px; padding: 20px; display: flex; flex-direction: column; justify-content: space-between; min-height: 140px;
-        }
-        .card-header-block { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 12px; }
-        .description { color: var(--text-muted); font-size: 0.85rem; margin: 0 0 16px 0; line-height: 1.4; }
-
-        /* --- HOMEWORK COMPONENTS --- */
-        .subject-badge { background-color: rgba(59, 130, 246, 0.1); color: var(--accent-blue); padding: 4px 8px; border-radius: 6px; font-size: 0.75rem; font-weight: 700; font-family: monospace; text-transform: uppercase; border: 1px solid rgba(59, 130, 246, 0.2); }
-        .due-date-label { font-size: 0.75rem; font-family: monospace; color: var(--warning); display: flex; align-items: center; gap: 4px; font-weight: 600; }
-        .due-date-label.imminent { color: var(--danger); }
-
-        /* --- SITTING CHART DISPLAY --- */
-        .seating-container { background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 24px; text-align: center; }
-        .seating-image { max-width: 100%; height: auto; border-radius: 8px; border: 1px solid var(--border-color); margin-top: 16px; background-color: var(--bg-main); }
-        .seating-meta { font-family: monospace; font-size: 0.85rem; color: var(--text-muted); text-align: left; display: flex; flex-direction: column; gap: 6px; }
-
-        @keyframes slideIn { from { transform: translateX(120%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
-        .empty-state { text-align: center; color: var(--text-muted); padding: 40px; grid-column: 1 / -1; font-family: monospace; font-size: 0.85rem; }
+        /* Sidebar & Content */
+        .sidebar { width: 250px; background: #0f172a; border-right: 1px solid var(--border); padding: 20px; }
+        .main-content { flex: 1; padding: 40px; }
+        .card { background: var(--bg-card); padding: 20px; margin-bottom: 15px; border-radius: 12px; border: 1px solid var(--border); }
     </style>
 </head>
 <body>
 
-    <div id="notificationTray" class="notification-tray"></div>
-
-    <nav class="sidebar">
-        <div class="sidebar-brand">
-            <img class="brand-icon" src="https://i.pinimg.com/736x/89/bc/70/89bc70da9ac43241759c2710602103c6.jpg" alt="Hub Icon">
-            <span>Class Utility Hub</span>
+    <div id="loginOverlay">
+        <div class="login-card">
+            <h2>Welcome</h2>
+            <input type="text" id="uid" placeholder="Enter Student ID">
+            <button id="loginBtn">Login</button>
         </div>
-        <div class="nav-group">
-            <button class="nav-btn active" onclick="switchView('homework-view', this)">📝 Homework Board</button>
-            <button class="nav-btn" onclick="switchView('seating-view', this)">🪑 Sitting Chart</button>
+    </div>
+
+    <div class="sidebar">
+        <h3>Class Hub</h3>
+        <button onclick="show('hw')">Assignments</button>
+        <button onclick="show('chart')">Seating</button>
+    </div>
+
+    <div class="main-content">
+        <div id="hw" class="view">
+            <h1>Assignments</h1>
+            <div id="hwList"></div>
         </div>
-    </nav>
-
-    <main class="main-content">
-        
-        <section id="homework-view" class="view-section active-view">
-            <header>
-                <h1>Classroom Homework Board</h1>
-                <p class="subtitle">// LIVE ASSIGNMENTS & DUE TASKS</p>
-            </header>
-            <div class="hub-grid" id="homeworkGrid">
-                </div>
-        </section>
-
-        <section id="seating-view" class="view-section">
-            <header>
-                <h1>Sitting Arrangement Map</h1>
-                <p class="subtitle">// CURRENT CLASSROOM DESK MATRIX</p>
-            </header>
-            <div class="seating-container">
-                <div class="seating-meta">
-                    <div><strong>Grid Layout:</strong> <span id="seatGridDim">Loading...</span></div>
-                    <div><strong>Structural Notes:</strong> <span id="seatNotes">No active layout adjustments logged.</span></div>
-                </div>
-                <img id="seatingImg" class="seating-image" src="" alt="Seating Chart Graphic" onerror="this.style.display='none'">
-            </div>
-        </section>
-
-    </main>
-
-    <script>
-        function switchView(viewId, clickedBtn) {
-            document.querySelectorAll('.view-section').forEach(view => view.classList.remove('active-view'));
-            document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
-            
-            document.getElementById(viewId).classList.add('active-view');
-            clickedBtn.clickedBtn = clickedBtn.classList.add('active');
-        }
-    </script>
+        <div id="chart" class="view" style="display:none">
+            <h1>Seating Chart</h1>
+            <img id="seatImg" style="width:100%; border-radius:12px;">
+        </div>
+    </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getDatabase, ref, onValue, remove } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+        import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
-        // ==========================================
-        //  FIREBASE CONFIGURATION
-        // ==========================================
-        const firebaseConfig = {
+        // --- PASTE YOUR CONFIG HERE ---
  apiKey: "AIzaSyAtZ9TWRdg3zDgdoy64nJJtJvnSjcboW_w",
   authDomain: "chud-class-tracker.firebaseapp.com",
   databaseURL: "https://chud-class-tracker-default-rtdb.firebaseio.com",
@@ -177,154 +73,31 @@
   appId: "1:246585543754:web:a26df56b7c018a6b612ab3"
         };
 
-        const app = initializeApp(firebaseConfig);
-        const db = getDatabase(app);
+        const db = getDatabase(initializeApp(firebaseConfig));
 
-        // --- SILENT DEVICE RECOGNITION (STEALTH MEMORY LOCK) ---
-        // Generates a persistent fingerprint signature unique to this screen window layout
-        const generateDeviceFingerprint = () => {
-            const screenSignature = `${screen.width}x${screen.height}x${screen.colorDepth}`;
-            const browserIdentity = navigator.userAgent.replace(/\s|[^a-zA-Z0-9]/g, "").substring(0, 15);
-            return `device_${browserIdentity}_${screenSignature}`;
+        // Logic
+        if(localStorage.getItem('user')) document.getElementById('loginOverlay').style.display = 'none';
+
+        document.getElementById('loginBtn').onclick = () => {
+            localStorage.setItem('user', document.getElementById('uid').value);
+            location.reload();
         };
-        const activeDeviceToken = generateDeviceFingerprint();
 
-        // Request browser system push capabilities
-        if ("Notification" in window) {
-            if (Notification.permission !== "granted" && Notification.permission !== "denied") {
-                Notification.requestPermission();
-            }
-        }
+        window.show = (id) => {
+            document.querySelectorAll('.view').forEach(v => v.style.display = 'none');
+            document.getElementById(id).style.display = 'block';
+        };
 
-        function triggerNativeNotification(title, message) {
-            if ("Notification" in window && Notification.permission === "granted") {
-                new Notification(title, {
-                    body: message,
-                    icon: "https://i.pinimg.com/736x/89/bc/70/89bc70da9ac43241759c2710602103c6.jpg"
-                });
-            }
-        }
-
-        // PIPELINE 1: Homework Data Gathering & Real-time Auto-Deletion Loops
-        const homeworkRef = ref(db, 'class_homework');
-        onValue(homeworkRef, (snapshot) => {
-            const data = snapshot.val();
-            const grid = document.getElementById('homeworkGrid');
-            const tray = document.getElementById('notificationTray');
-            
-            grid.innerHTML = '';
-            tray.innerHTML = ''; 
-
-            if (!data) {
-                grid.innerHTML = '<div class="empty-state">// NO ACTIVE HOMEWORK LOGGED. CHILL TIME.</div>';
-                return;
-            }
-
-            const today = new Date();
-            today.setHours(0,0,0,0); 
-
-            Object.keys(data).forEach(id => {
-                const item = data[id];
-                let daysLeft = null;
-                let dateDisplay = item.due || 'Not Specified';
-                
-                if (item.due) {
-                    const parsedDueDate = new Date(item.due);
-                    if (!isNaN(parsedDueDate.getTime())) {
-                        parsedDueDate.setHours(0,0,0,0);
-                        const differenceInTime = parsedDueDate.getTime() - today.getTime();
-                        daysLeft = Math.ceil(differenceInTime / (1000 * 3600 * 24));
-                    }
-                }
-
-                // GARBAGE COLLECTOR AUTOMATION (Clears out 1 full day after the due date)
-                if (daysLeft !== null && daysLeft <= -1) {
-                    const itemRef = ref(db, `class_homework/${id}`);
-                    remove(itemRef); 
-                    return; 
-                }
-
-                let alertClass = "";
-                let subtextLabel = `⏳ Due: ${dateDisplay}`;
-                
-                if (daysLeft !== null) {
-                    if (daysLeft === 0) {
-                        subtextLabel = `🚨 DUE TODAY`;
-                        alertClass = "imminent";
-                    } else if (daysLeft === 1) {
-                        subtextLabel = `⚠️ DUE TOMORROW`;
-                        alertClass = "imminent";
-                    } else {
-                        subtextLabel = `⏳ Due in ${daysLeft} Days (${dateDisplay})`;
-                    }
-                }
-
-                // Render Dashboard Item Cards
-                grid.insertAdjacentHTML('beforeend', `
-                    <div class="card">
-                        <div>
-                            <div class="card-header-block">
-                                <span class="subject-badge">${item.subject || 'General'}</span>
-                            </div>
-                            <p class="description" style="color: var(--text-main); font-weight: 500; margin-bottom: 8px;">${item.task}</p>
-                        </div>
-                        <div class="due-date-label ${alertClass}">
-                            ${subtextLabel}
-                        </div>
-                    </div>
-                `);
-
-                // Countdown alerts handling triggers (3 or 4 days away)
-                if (daysLeft === 3 || daysLeft === 4) {
-                    tray.insertAdjacentHTML('beforeend', `
-                        <div class="toast-alert">
-                            <div class="toast-header">
-                                <span style="color:var(--warning)">⚠️ HOMEWORK ALERT</span>
-                                <span>${daysLeft}d left</span>
-                            </div>
-                            <h4 class="toast-title">${item.subject || 'Assignment'} Reminder</h4>
-                            <p class="toast-desc">${item.task}</p>
-                        </div>
-                    `);
-                    triggerNativeNotification(
-                        `⚠️ Homework Due in ${daysLeft} Days!`, 
-                        `Subject: ${item.subject || 'Classwork'} | Task: ${item.task}`
-                    );
-                } 
-                else if (daysLeft >= 0 && daysLeft <= 2) {
-                    tray.insertAdjacentHTML('beforeend', `
-                        <div class="toast-alert urgent">
-                            <div class="toast-header">
-                                <span style="color:var(--danger)">🚨 DEADLINE IMMINENT</span>
-                                <span>${daysLeft === 0 ? 'Today' : daysLeft + 'd left'}</span>
-                            </div>
-                            <h4 class="toast-title">${item.subject || 'Assignment'}</h4>
-                            <p class="toast-desc">${item.task}</p>
-                        </div>
-                    `);
-                    let textContext = daysLeft === 0 ? "TODAY" : (daysLeft === 1 ? "TOMORROW" : "in 2 days");
-                    triggerNativeNotification(
-                        `🚨 CRITICAL DEADLINE: DUE ${textContext}!`, 
-                        `Subject: ${item.subject || 'Classwork'} | Task: ${item.task}`
-                    );
-                }
+        onValue(ref(db, 'class_homework'), (s) => {
+            const list = document.getElementById('hwList');
+            list.innerHTML = '';
+            Object.values(s.val() || {}).forEach(item => {
+                list.insertAdjacentHTML('beforeend', `<div class="card"><h3>${item.subject}</h3><p>${item.task}</p></div>`);
             });
         });
 
-        // PIPELINE 2: Seating Arrangements Fetch Engine
-        const seatingRef = ref(db, 'sitting_layout');
-        onValue(seatingRef, (snapshot) => {
-            const data = snapshot.val() || {};
-            document.getElementById('seatGridDim').innerText = data.grid_dimensions || "N/A";
-            document.getElementById('seatNotes').innerText = data.notes || "No layout parameters noted.";
-            
-            const imgElement = document.getElementById('seatingImg');
-            if (data.chart_url && data.chart_url.trim() !== "") {
-                imgElement.src = data.chart_url;
-                imgElement.style.display = "block";
-            } else {
-                imgElement.style.display = "none";
-            }
+        onValue(ref(db, 'sitting_layout'), (s) => {
+            if(s.val()?.chart_url) document.getElementById('seatImg').src = s.val().chart_url;
         });
     </script>
 </body>
