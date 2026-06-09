@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>ChudSeries Gateway</title>
+    <style>
+        body { background: #000; color: #0f0; font-family: 'Courier New', monospace; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .box { text-align: center; }
+        .spinner { border: 4px solid #333; border-top: 4px solid #0f0; border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; margin: 20px auto; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+    <div class="box">
+        <h1>ChudSeries</h1>
+        <div class="spinner"></div>
+        <p id="status">Initiating System...</p>
+    </div>
+    <script>
+        const status = document.getElementById("status");
+        async function bridge() {
+            status.innerText = "Syncing with Firebase...";
+            // Simulate connection time
+            await new Promise(r => setTimeout(r, 2000));
+            window.location.href = "ChudClass.html";
+        }
+        bridge();
+    </script>
+</body>
+</html>
